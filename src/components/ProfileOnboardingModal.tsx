@@ -1,3 +1,4 @@
+// Profile editor + Google sign-in + demo role quick-switch (updates all owned bookings/chats).
 import { useState } from "react";
 import { UserProfile, Role } from "../types";
 import { signInWithGoogle } from "../lib/firebase";
@@ -60,13 +61,15 @@ export function ProfileOnboardingModal({
         authProvider: "google",
       });
       setFeedbackMsg(`✓ Signed in with Google as ${googleUser.email}! You can confirm details below.`);
-    } catch (err: any) {
-      if (err.code === "auth/popup-closed-by-user") {
+    } catch (err: unknown) {
+      const code = typeof err === "object" && err !== null && "code" in err ? String((err as { code: unknown }).code) : "";
+      const message = err instanceof Error ? err.message : "";
+      if (code === "auth/popup-closed-by-user") {
         setFeedbackMsg("Google popup closed. You can edit your profile details below.");
-      } else if (err.code === "auth/popup-blocked") {
+      } else if (code === "auth/popup-blocked") {
         setFeedbackMsg("Popup blocked by browser. Please allow popups or enter your details below.");
       } else {
-        setFeedbackMsg(`Notice: ${err.message || "Could not complete popup sign-in."}`);
+        setFeedbackMsg(`Notice: ${message || "Could not complete popup sign-in."}`);
       }
     } finally {
       setIsSigningIn(false);

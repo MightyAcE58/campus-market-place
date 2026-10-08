@@ -1,3 +1,4 @@
+// React entrypoint: mounts <App /> (global styles via index.css) into #root.
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'

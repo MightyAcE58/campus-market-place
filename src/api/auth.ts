@@ -67,7 +67,7 @@ export const authApi = {
   async vendorLogin(emailOrPhone: string, password: string) {
     const res = await apiClient.request<{
       user: UserProfile;
-      vendor: any;
+      vendor: Record<string, unknown>;
       accessToken: string;
       refreshToken: string;
     }>("/auth/vendor/login", {

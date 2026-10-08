@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, type ApiRecord } from "./client";
 
 export interface CategoryItem {
   id: "ride" | "laundry" | "food";
@@ -52,14 +52,14 @@ export const marketplaceApi = {
   },
 
   async getVendorById(vendorId: string) {
-    return apiClient.request<any>(`/marketplace/vendors/${vendorId}`);
+    return apiClient.request<VendorItem>(`/marketplace/vendors/${vendorId}`);
   },
 
   async getServiceConfig(serviceId: string) {
-    return apiClient.request<any>(`/marketplace/services/${serviceId}`);
+    return apiClient.request<ApiRecord>(`/marketplace/services/${serviceId}`);
   },
 
   async getOffers() {
-    return apiClient.request<any[]>("/marketplace/offers");
+    return apiClient.request<ApiRecord[]>("/marketplace/offers");
   },
 };

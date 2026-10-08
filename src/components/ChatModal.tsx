@@ -1,3 +1,4 @@
+// In-platform direct chat + price negotiation (offers, counter-offers, deal lock).
 import { useState, useRef, useEffect } from "react";
 import { Conversation, UserProfile, VendorItem, BookingItem, Role } from "../types";
 
@@ -154,6 +155,8 @@ export function ChatModal({
 
             if (msg.type === "OFFER" || msg.type === "COUNTER_OFFER") {
               const isOfferByMe = isMe;
+              // Offer messages always carry an amount; fall back to 0 so the UI never renders NaN/undefined.
+              const offerAmount = msg.offerAmount ?? 0;
               return (
                 <div
                   key={msg.id}
@@ -163,7 +166,7 @@ export function ChatModal({
                   <div className="offer-badge-title">
                     {msg.type === "OFFER" ? "💰 PRICE OFFER SUBMITTED" : "🔄 COUNTER-OFFER PROPOSED"}
                   </div>
-                  <div className="offer-amount-highlight">₹{msg.offerAmount}</div>
+                  <div className="offer-amount-highlight">₹{offerAmount}</div>
                   <div className="offer-note">{msg.content}</div>
 
                   {/* Actions for receiver */}
@@ -171,14 +174,14 @@ export function ChatModal({
                     <div className="offer-actions">
                       <button
                         className="btn-accept"
-                        onClick={() => onRespondOffer(conversation.id, "ACCEPT", msg.offerAmount)}
+                        onClick={() => onRespondOffer(conversation.id, "ACCEPT", offerAmount)}
                       >
-                        ✓ Accept ₹{msg.offerAmount}
+                        ✓ Accept ₹{offerAmount}
                       </button>
                       <button
                         className="btn-counter"
                         onClick={() => {
-                          setCounterInput(String(Math.round(msg.offerAmount * 1.1)));
+                          setCounterInput(String(Math.round(offerAmount * 1.1)));
                           setShowCounterDrawer(true);
                         }}
                       >

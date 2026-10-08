@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient, type ApiRecord } from "./client";
 
 export interface BookingItem {
   id: string;
@@ -14,8 +14,8 @@ export interface BookingItem {
     phone: string;
     vehicleIdentifier: string;
   } | null;
-  bookingData?: any;
-  customer?: any;
+  bookingData?: ApiRecord;
+  customer?: ApiRecord;
 }
 
 export const bookingsApi = {
@@ -28,7 +28,7 @@ export const bookingsApi = {
     return apiClient.request<{
       quotedFare: number;
       currency: string;
-      breakdown: any;
+      breakdown: ApiRecord;
     }>("/bookings/ride/quote", {
       method: "POST",
       body: JSON.stringify(params),
@@ -44,7 +44,7 @@ export const bookingsApi = {
     passengers: number;
     idempotencyKey?: string;
   }) {
-    return apiClient.request<any>("/bookings", {
+    return apiClient.request<BookingItem>("/bookings", {
       method: "POST",
       body: JSON.stringify({ ...data, serviceType: "BIKE_RIDE" }),
     });
@@ -57,7 +57,7 @@ export const bookingsApi = {
     bagPhotoUrl?: string;
     idempotencyKey?: string;
   }) {
-    return apiClient.request<any>("/bookings", {
+    return apiClient.request<BookingItem>("/bookings", {
       method: "POST",
       body: JSON.stringify({ ...data, serviceType: "LAUNDRY" }),
     });
@@ -69,7 +69,7 @@ export const bookingsApi = {
     collectionPoint?: string;
     idempotencyKey?: string;
   }) {
-    return apiClient.request<any>("/bookings", {
+    return apiClient.request<BookingItem>("/bookings", {
       method: "POST",
       body: JSON.stringify({ ...data, serviceType: "FOOD" }),
     });
@@ -92,24 +92,24 @@ export const bookingsApi = {
   },
 
   async getBookingById(id: string) {
-    return apiClient.request<any>(`/bookings/${id}`);
+    return apiClient.request<BookingItem>(`/bookings/${id}`);
   },
 
   async cancelBooking(id: string) {
-    return apiClient.request<any>(`/bookings/${id}/cancel`, {
+    return apiClient.request<BookingItem>(`/bookings/${id}/cancel`, {
       method: "POST",
     });
   },
 
   async updateStatus(id: string, status: string, notes?: string) {
-    return apiClient.request<any>(`/bookings/${id}/status`, {
+    return apiClient.request<BookingItem>(`/bookings/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status, notes }),
     });
   },
 
   async assignRider(id: string, riderId: string) {
-    return apiClient.request<any>(`/bookings/${id}/assign-rider`, {
+    return apiClient.request<BookingItem>(`/bookings/${id}/assign-rider`, {
       method: "POST",
       body: JSON.stringify({ riderId }),
     });

@@ -1,3 +1,4 @@
+// Pilot validation story: owner Q&A + 12-step journey with demo-flow shortcuts.
 import { useState } from "react";
 
 interface PilotCaseStudyModalProps {

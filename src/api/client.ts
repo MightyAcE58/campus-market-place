@@ -1,14 +1,31 @@
+/**
+ * Typed HTTP client for the Campus Commerce Express backend.
+ * All feature APIs (`auth`, `bookings`, `marketplace`, `vendors`, `admin`,
+ * `notifications`) build on `apiClient.request()`, which attaches the stored
+ * JWT, retries once via refresh-token rotation on 401, and throws typed
+ * errors carrying `code` / `status` / `details`.
+ */
 const API_BASE_URL = "/api/v1";
 
-export interface ApiResponse<T = any> {
+/** JSON-safe record used for untyped API payloads. Prefer a concrete interface where the shape is known. */
+export type ApiRecord = Record<string, unknown>;
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data: T;
-  meta?: Record<string, any>;
+  meta?: ApiRecord;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
+}
+
+/** Extra fields attached to errors thrown by ApiClient.request. */
+export interface ApiErrorDetails {
+  code?: string;
+  status?: number;
+  details?: unknown;
 }
 
 class ApiClient {
@@ -70,10 +87,10 @@ class ApiClient {
 
     if (!response.ok || !json.success) {
       const errorMsg = json.error?.message || `Request failed with status ${response.status}`;
-      const err = new Error(errorMsg);
-      (err as any).code = json.error?.code || "API_ERROR";
-      (err as any).status = response.status;
-      (err as any).details = json.error?.details;
+      const err: Error & ApiErrorDetails = new Error(errorMsg);
+      err.code = json.error?.code || "API_ERROR";
+      err.status = response.status;
+      err.details = json.error?.details;
       throw err;
     }
 

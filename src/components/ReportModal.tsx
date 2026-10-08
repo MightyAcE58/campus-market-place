@@ -1,3 +1,4 @@
+// Customer safety: file a report against a vendor or booking for admin audit.
 import { useState } from "react";
 import { ReportItem } from "../types";
 

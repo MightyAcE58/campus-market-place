@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser,
 } from "firebase/auth";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAnalytics, isSupported, type Analytics } from "firebase/analytics";
 
 // Web app's Firebase configuration provided by user
 export const firebaseConfig = {
@@ -32,8 +32,8 @@ googleProvider.setCustomParameters({
   prompt: "select_account",
 });
 
-// Initialize Analytics conditionally
-export let analytics: any = null;
+// Initialize Analytics conditionally (null when unsupported, e.g. some browsers/iframes)
+export let analytics: Analytics | null = null;
 if (typeof window !== "undefined") {
   isSupported()
     .then((yes) => {
@@ -64,7 +64,7 @@ export async function signInWithGoogle(): Promise<{
       displayName: user.displayName,
       photoURL: user.photoURL,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.warn("Firebase Google popup sign-in notice:", error);
     throw error;
   }

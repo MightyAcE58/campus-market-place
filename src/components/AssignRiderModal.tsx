@@ -1,3 +1,4 @@
+// Vendor tool: assign an available rider to a bike-ride booking.
 import { useState } from "react";
 import { Rider, BookingItem } from "../types";
 

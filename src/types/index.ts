@@ -1,3 +1,9 @@
+/**
+ * Shared domain models for Campus Commerce.
+ * These types describe every entity the UI renders (vendors, bookings, chats,
+ * offers, notifications, reports) and are shared by the mock store, the API
+ * layer (`src/api/*`), and all screens in `src/App.tsx`.
+ */
 export type Role = "customer" | "vendor" | "admin";
 export type CategoryId = "ride" | "laundry" | "food";
 
@@ -22,7 +28,7 @@ export type MessageType =
   | "SYSTEM_STATUS";
 
 export type AccessStatus = "INVITED" | "ACTIVE" | "TRIAL" | "SUSPENDED" | "EXPIRED" | "REMOVED";
-export type AccessPlan = "PAID" | "FREE" | "TRIAL";
+export type AccessPlan = "PAID" | "FREE" | "TRIAL" | "FREE_TRIAL";
 export type DietaryClassification = "VEG_ONLY" | "VEG_AND_NON_VEG";
 
 export interface UserProfile {
@@ -82,6 +88,10 @@ export interface VendorItem {
   plan: AccessPlan;
   monthlyPrice: number;
   isPilotBusiness?: boolean;
+  // Optional contact / listing extras (e.g. set by the admin onboarding wizard)
+  ownerPhone?: string;
+  location?: string;
+  reviewCount?: number;
   // Service-specific configurations
   fareMatrix?: Record<string, Record<string, Record<number, number>>>;
   riders?: Rider[];
@@ -111,7 +121,34 @@ export interface ChatMessage {
   type: MessageType;
   content: string;
   offerAmount?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Category-specific payload stored on a booking.
+ * All fields are optional because each category only fills its own subset:
+ * - ride: pickup / dropoff / passengers / scheduledTime
+ * - laundry: serviceType / quantities / weightKg / bagPhoto / photoUrl / pickupHostel / pickupRoom
+ * - food: items / collectionPoint / dietary
+ */
+export interface BookingData {
+  // Bike ride fields
+  pickup?: string;
+  dropoff?: string;
+  passengers?: number;
+  scheduledTime?: string;
+  // Laundry fields
+  serviceType?: string;
+  quantities?: Record<string, number>;
+  weightKg?: number;
+  bagPhoto?: boolean;
+  photoUrl?: string | null;
+  pickupHostel?: string;
+  pickupRoom?: string;
+  // Food fields
+  items?: Array<{ name: string; quantity: number; price?: number }>;
+  collectionPoint?: string;
+  dietary?: DietaryClassification;
 }
 
 export interface Conversation {
@@ -155,7 +192,7 @@ export interface BookingItem {
   date: string;
   time?: string;
   rider?: Rider | null;
-  bookingData?: Record<string, any>;
+  bookingData?: BookingData;
   conversationId?: string;
   statusHistory: Array<{
     status: BookingStatus;

@@ -1,14 +1,18 @@
-import {
+/**
+ * Mock backend for the frontend: seeded vendors, bookings, chats, offers,
+ * notifications and reports, persisted to localStorage under STORAGE_KEY.
+ * `loadSavedState()` hydrates on boot (falling back to the seeds below);
+ * `saveState()` writes back on every store change. The demo role-switcher
+ * swaps `currentUser` between the three persona accounts defined here.
+ */
+import type {
   UserProfile,
   VendorItem,
   BookingItem,
   Conversation,
-  ChatMessage,
   OfferItem,
   NotificationItem,
   ReportItem,
-  BookingStatus,
-  Rider,
 } from "../types";
 
 const STORAGE_KEY = "ccm_mvp_v12_state";
@@ -53,20 +57,6 @@ export const defaultPilotVendorUser: UserProfile = {
   authProvider: "google",
   vendorId: "fresh-fold",
   vendorName: "FreshFold Laundry",
-};
-
-export const defaultFoodVendorUser: UserProfile = {
-  id: "firebase_usr_nisha_greenbowl",
-  name: "Nisha Kapoor",
-  email: "nisha@greenbowl.in",
-  phone: "+91 98111 22334",
-  hostel: "Vendor Annex",
-  roomNumber: "V-08",
-  role: "VENDOR_OWNER",
-  isProfileComplete: true,
-  authProvider: "google",
-  vendorId: "green-bowl",
-  vendorName: "Green Bowl",
 };
 
 export const defaultAdminUser: UserProfile = {
