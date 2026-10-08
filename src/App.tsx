@@ -186,11 +186,26 @@ function VendorCard({
         </div>
         <div className="vendor-description">{vendor.description}</div>
         <div className="tag-row">
-          {vendor.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className={tag.includes("Negotiat") || tag.includes("Bargaining") ? "tag-negotiable" : ""}>
-              {tag}
-            </span>
-          ))}
+          {vendor.tags
+            .filter((tag) => {
+              // Avoid duplicate veg pills: dietary badge already covers it for VEG_ONLY kitchens.
+              if (vendor.dietaryClassification === "VEG_ONLY") {
+                const n = tag.toLowerCase().replace(/[^a-z]/g, "");
+                if (n === "vegonly" || n === "veg" || n === "vegonlyvendors") return false;
+              }
+              return true;
+            })
+            .slice(0, 4)
+            .map((tag) => {
+              const lower = tag.toLowerCase();
+              const isNegotiable = (tag.includes("Negotiat") || tag.includes("Bargaining")) && !lower.includes("no bargain");
+              const isFixed = lower.includes("no bargain") || lower.includes("fixed fare");
+              return (
+                <span key={tag} className={isNegotiable ? "tag-negotiable" : isFixed ? "tag-fixed" : ""}>
+                  {tag}
+                </span>
+              );
+            })}
           {vendor.dietaryClassification === "VEG_ONLY" && (
             <span className="dietary-tag dietary-veg">🌱 Veg Only</span>
           )}
@@ -245,6 +260,8 @@ export default function App() {
   const [adminTab, setAdminTab] = useState("dashboard");
   const [filterOpen, setFilterOpen] = useState(false);
   const [vegOnlyFilter, setVegOnlyFilter] = useState(false);
+  const [verifiedOnlyFilter, setVerifiedOnlyFilter] = useState(true);
+  const [negotiableOnlyFilter, setNegotiableOnlyFilter] = useState(false);
   const [marketplaceTab, setMarketplaceTab] = useState<"All" | "Bike Ride" | "Laundry" | "Food">("All");
 
   // Bike flow state
@@ -895,24 +912,32 @@ export default function App() {
     toast(`Status updated to ${nextStatus}`);
   };
 
-  // Filter vendors
+  // Filter vendors (shared by Home search + Marketplace tabs/filters)
+  // Marketplace tabs only apply when screen === "marketplace" so Home stays unfiltered.
+  const isMarketplaceScreen = screen === "marketplace";
   const filteredVendors = useMemo(() => {
     return store.vendors.filter((v) => {
+      const q = search.trim().toLowerCase();
       const matchesSearch =
-        !search ||
-        v.name.toLowerCase().includes(search.toLowerCase()) ||
-        v.tags.some((t) => t.toLowerCase().includes(search.toLowerCase())) ||
-        v.area.toLowerCase().includes(search.toLowerCase());
-      const matchesDietary = !vegOnlyFilter || v.dietaryClassification === "VEG_ONLY" || v.category !== "food";
-      // Tab filter in marketplace view
+        !q ||
+        v.name.toLowerCase().includes(q) ||
+        v.tags.some((t) => t.toLowerCase().includes(q)) ||
+        v.area.toLowerCase().includes(q);
+      // Veg-only applies to food services only (Marketplace Food tab).
+      const vegFilterActive = vegOnlyFilter && isMarketplaceScreen && marketplaceTab === "Food";
+      const matchesDietary = !vegFilterActive || v.dietaryClassification === "VEG_ONLY" || v.category !== "food";
+      const matchesVerified = !verifiedOnlyFilter || v.verified;
+      const matchesNegotiable = !negotiableOnlyFilter || v.negotiationEnabled;
+      // Tab filter applies in marketplace view only
       const matchesTab =
+        !isMarketplaceScreen ||
         marketplaceTab === "All" ||
         (marketplaceTab === "Bike Ride" && v.category === "ride") ||
         (marketplaceTab === "Laundry" && v.category === "laundry") ||
         (marketplaceTab === "Food" && v.category === "food");
-      return matchesSearch && matchesDietary && matchesTab;
+      return matchesSearch && matchesDietary && matchesVerified && matchesNegotiable && matchesTab;
     });
-  }, [store.vendors, search, vegOnlyFilter, marketplaceTab]);
+  }, [store.vendors, search, vegOnlyFilter, verifiedOnlyFilter, negotiableOnlyFilter, marketplaceTab, isMarketplaceScreen]);
 
   // Render Screens
   const renderHome = () => (
@@ -1011,14 +1036,6 @@ export default function App() {
                 <div className="section-title">{search ? "Search results" : "Verified Campus Partners"}</div>
                 <div className="section-subtitle">{filteredVendors.length} businesses actively serving campus</div>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={vegOnlyFilter}
-                  onChange={(e) => setVegOnlyFilter(e.target.checked)}
-                />
-                <span>Veg-only food filter</span>
-              </label>
             </div>
             <div className="vendor-grid">
               {filteredVendors.map((vendor) => (
@@ -1158,12 +1175,12 @@ export default function App() {
         title="Marketplace Catalogue"
         subtitle="Browse verified campus businesses and structured services"
         action={
-          <div style={{ display: "flex", gap: 8 }}>
-            <Button className="secondary-button" onClick={() => setModal("pilot-case-study")}>
+          <div className="page-head-actions">
+            <Button className="secondary" onClick={() => setModal("pilot-case-study")}>
               📋 Pilot Case Study
             </Button>
-            <Button className="secondary-button" onClick={() => setFilterOpen(true)}>
-              <Icon name="filter" /> Filters
+            <Button className="secondary" onClick={() => setFilterOpen(true)}>
+              <Icon name="filter" size={16} /> Filters
             </Button>
           </div>
         }
@@ -1171,27 +1188,37 @@ export default function App() {
 
       <div className="market-toolbar">
         <div className="market-search">
-          <Icon name="search" />
+          <Icon name="search" size={18} />
           <input
+            aria-label="Search marketplace"
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search services, vendors, or keywords (e.g. laundry, veg, bike)..."
             value={search}
           />
+          {search && (
+            <button aria-label="Clear search" className="search-clear" onClick={() => setSearch("")} type="button">
+              <Icon name="close" size={14} />
+            </button>
+          )}
         </div>
         <div className="location-context">
-          <Icon name="location" /> Student Hostel: {store.currentUser.hostel} · {store.currentUser.roomNumber}
+          <Icon name="location" size={15} /> Student Hostel: {store.currentUser.hostel} · {store.currentUser.roomNumber}
         </div>
       </div>
 
-      <div className="tabs">
+      <div aria-label="Marketplace categories" className="tabs" role="tablist">
         {(["All", "Bike Ride", "Laundry", "Food"] as const).map((tab) => (
           <button
+            aria-selected={marketplaceTab === tab}
             className={marketplaceTab === tab ? "active" : ""}
             key={tab}
             onClick={() => {
               setMarketplaceTab(tab);
               setSearch("");
+              if (tab !== "Food") setVegOnlyFilter(false);
             }}
+            role="tab"
+            type="button"
           >
             {tab}
           </button>
@@ -1201,43 +1228,80 @@ export default function App() {
       <div className="listing-layout">
         <aside className="filter-panel">
           <div className="panel-title">Filters & Trust</div>
+          {marketplaceTab === "Food" && (
+            <Toggle
+              checked={vegOnlyFilter}
+              label="Veg-Only Vendors"
+              detail="Show vegetarian food businesses"
+              onChange={() => setVegOnlyFilter(!vegOnlyFilter)}
+            />
+          )}
           <Toggle
-            checked={vegOnlyFilter}
-            label="Veg-Only Vendors"
-            detail="Show vegetarian food businesses"
-            onChange={() => setVegOnlyFilter(!vegOnlyFilter)}
-          />
-          <Toggle
-            checked={true}
+            checked={verifiedOnlyFilter}
             label="Admin-Verified Only"
             detail="Verified campus businesses"
-            onChange={() => toast("All campus vendors are verified")}
+            onChange={() => setVerifiedOnlyFilter(!verifiedOnlyFilter)}
           />
           <div style={{ marginTop: 16 }}>
             <div className="panel-title" style={{ fontSize: 12 }}>Bargaining Availability</div>
             <div className="chip-set">
-              <button className="active">All</button>
-              <button onClick={() => toast("Showing negotiable services")}>Negotiable only</button>
+              <button
+                className={!negotiableOnlyFilter ? "active" : ""}
+                onClick={() => setNegotiableOnlyFilter(false)}
+                type="button"
+              >
+                All
+              </button>
+              <button
+                className={negotiableOnlyFilter ? "active" : ""}
+                onClick={() => setNegotiableOnlyFilter(true)}
+                type="button"
+              >
+                Negotiable only
+              </button>
             </div>
           </div>
         </aside>
 
         <div className="vendor-list">
-          {filteredVendors.map((vendor) => (
-            <VendorCard
-              key={vendor.id}
-              vendor={vendor}
-              onBook={() => {
-                setVendorId(vendor.id);
-                openCategory(vendor.category);
-              }}
-              onDetails={() => {
-                setVendorId(vendor.id);
-                navigate("vendor-detail");
-              }}
-              onChat={() => openChatWithVendor(vendor)}
-            />
-          ))}
+          {filteredVendors.length === 0 ? (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <EmptyState
+                title="No vendors match these filters"
+                text={`No ${marketplaceTab === "All" ? "" : `${marketplaceTab} `}vendors found${search ? ` for "${search}"` : ""}. Try a different category or clear filters.`}
+                action={
+                  <Button
+                    className="secondary"
+                    onClick={() => {
+                      setMarketplaceTab("All");
+                      setSearch("");
+                      setVegOnlyFilter(false);
+                      setNegotiableOnlyFilter(false);
+                      setVerifiedOnlyFilter(false);
+                    }}
+                  >
+                    Clear all filters
+                  </Button>
+                }
+              />
+            </div>
+          ) : (
+            filteredVendors.map((vendor) => (
+              <VendorCard
+                key={vendor.id}
+                vendor={vendor}
+                onBook={() => {
+                  setVendorId(vendor.id);
+                  openCategory(vendor.category);
+                }}
+                onDetails={() => {
+                  setVendorId(vendor.id);
+                  navigate("vendor-detail");
+                }}
+                onChat={() => openChatWithVendor(vendor)}
+              />
+            ))
+          )}
         </div>
       </div>
     </main>
@@ -2499,11 +2563,25 @@ export default function App() {
         <nav className="desktop-nav" aria-label="Main navigation">
           {navItems.map((item) => {
             const itemKey = item.toLowerCase().replace(/ /g, "-");
-            const isActive = role === "admin"
-              ? adminTab === itemKey
-              : screen.includes(item.toLowerCase()) || (item === "Home" && screen === "home");
+            let isActive = false;
+            if (role === "admin") {
+              isActive = adminTab === itemKey;
+            } else if (role === "customer") {
+              // Keep parent nav highlighted on marketplace / bookings sub-screens
+              // so the underline never disappears mid-flow (consistent navigation).
+              const marketplaceScreens = ["marketplace", "service-select", "vendor-detail", "bike-flow", "laundry-flow", "food-flow", "confirmation"];
+              const bookingsScreens = ["bookings", "booking-detail"];
+              if (item === "Home") isActive = screen === "home";
+              else if (item === "Marketplace") isActive = marketplaceScreens.includes(screen);
+              else if (item === "Bookings") isActive = bookingsScreens.includes(screen);
+              else if (item === "Messages") isActive = screen === "messages";
+              else if (item === "Offers") isActive = screen === "offers";
+            } else {
+              isActive = screen === `${role}-${itemKey}` || screen === itemKey;
+            }
             return (
               <button
+                aria-current={isActive ? "page" : undefined}
                 className={isActive ? "nav-link active" : "nav-link"}
                 key={item}
                 onClick={() => navigate(`${role}-${itemKey}`)}
@@ -2559,7 +2637,7 @@ export default function App() {
       {/* Role / Workspace Switcher Bar */}
       <div className="workspace-bar">
         <span>
-          Active Session: <strong>{store.currentUser.name}</strong> ({store.currentUser.role}) · Firebase UID: {store.currentUser.id.slice(0, 16)}...
+          Signed in as <strong>{store.currentUser.name}</strong>
         </span>
         <div>
           <button className={role === "customer" ? "active" : ""} onClick={() => switchRole("customer")}>
@@ -2581,19 +2659,19 @@ export default function App() {
       {role === "customer" && (
         <nav className="mobile-nav" aria-label="Mobile navigation">
           {[
-            ["Home", "home"],
-            ["Marketplace", "store"],
-            ["Bookings", "calendar"],
-            ["Messages", "chat"],
-            ["Offers", "offer"],
-          ].map(([label, icon]) => (
+            ["Home", "home", ["home"]],
+            ["Marketplace", "store", ["marketplace", "service-select", "vendor-detail", "bike-flow", "laundry-flow", "food-flow", "confirmation"]],
+            ["Bookings", "calendar", ["bookings", "booking-detail"]],
+            ["Messages", "chat", ["messages"]],
+            ["Offers", "offer", ["offers"]],
+          ].map(([label, icon, screens]) => (
             <button
-              className={screen.toLowerCase().includes(label.toLowerCase()) ? "active" : ""}
-              key={label}
-              onClick={() => navigate(`customer-${label.toLowerCase()}`)}
+              className={(screens as string[]).includes(screen) ? "active" : ""}
+              key={label as string}
+              onClick={() => navigate(`customer-${(label as string).toLowerCase()}`)}
             >
               <Icon name={icon as IconName} size={20} />
-              <span>{label}</span>
+              <span>{label as string}</span>
             </button>
           ))}
         </nav>
@@ -2828,21 +2906,31 @@ export default function App() {
         </Modal>
       )}
 
-      {/* Filter Modal */}
+      {/* Filter Modal — mirrors the desktop filter panel so mobile filtering stays consistent */}
       {filterOpen && (
         <Modal onClose={() => setFilterOpen(false)} title="Filter Services & Preferences">
           <div className="filter-modal">
-            <div className="panel-title">Dietary Preference</div>
+            {marketplaceTab === "Food" && (
+              <>
+                <div className="panel-title">Dietary Preference</div>
+                <Toggle
+                  checked={vegOnlyFilter}
+                  label="Veg-Only Businesses"
+                  detail="Only show pure-vegetarian campus vendors"
+                  onChange={() => setVegOnlyFilter(!vegOnlyFilter)}
+                />
+              </>
+            )}
             <Toggle
-              checked={vegOnlyFilter}
-              label="Veg-Only Businesses"
-              detail="Only show pure-vegetarian campus vendors"
-              onChange={() => setVegOnlyFilter(!vegOnlyFilter)}
+              checked={verifiedOnlyFilter}
+              label="Admin-Verified Only"
+              detail="Verified campus businesses"
+              onChange={() => setVerifiedOnlyFilter(!verifiedOnlyFilter)}
             />
             <div className="panel-title" style={{ marginTop: 14 }}>Bargaining Availability</div>
             <div className="chip-set">
-              <button className="active">All Services</button>
-              <button onClick={() => toast("Filtered by negotiable services")}>Negotiable Only</button>
+              <button className={!negotiableOnlyFilter ? "active" : ""} onClick={() => setNegotiableOnlyFilter(false)} type="button">All Services</button>
+              <button className={negotiableOnlyFilter ? "active" : ""} onClick={() => setNegotiableOnlyFilter(true)} type="button">Negotiable Only</button>
             </div>
             <div style={{ marginTop: 18 }}>
               <Button className="full" onClick={() => setFilterOpen(false)}>
