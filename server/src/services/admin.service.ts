@@ -5,6 +5,7 @@ import { AccessStatus, Role, VendorType, AccessPlan } from "@prisma/client";
 import { normalizePhone } from "../utils/phone.js";
 import { logAudit } from "../utils/audit.js";
 import { logger } from "../utils/logger.js";
+import { env } from "../config/env.js";
 
 export class AdminService {
   async onboardVendor(
@@ -106,8 +107,9 @@ export class AdminService {
     });
 
     // Mock Email Invitation Dispatch
+    const appOrigin = process.env.APP_URL || env.APP_BASE_URL || "http://localhost:5173";
     logger.info(
-      `[Email Service] Sent activation link to ${data.email}: ${process.env.APP_BASE_URL || "http://localhost:5173"}/activate?token=${activationToken}`
+      `[Email Service] Sent activation link to ${data.email}: ${appOrigin}/activate?token=${activationToken}`
     );
 
     await logAudit({

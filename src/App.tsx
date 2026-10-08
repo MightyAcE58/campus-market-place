@@ -1070,11 +1070,11 @@ export default function App() {
                   />
                 </div>
               </div>
-              <div className="vendor-btn-pair">
-                <Button className="full secondary" onClick={() => openChatWithVendor(store.vendors[0], activeLaundryBooking)}>
-                  <Icon name="chat" size={15} /> Chat / Bargain
+              <div className="booking-card-actions">
+                <Button className="secondary" onClick={() => openChatWithVendor(store.vendors[0], activeLaundryBooking)}>
+                  <Icon name="chat" size={14} /> Chat / Bargain
                 </Button>
-                <Button className="full" onClick={() => { setSelectedBookingId(activeLaundryBooking.id); navigate("booking-detail"); }}>
+                <Button onClick={() => { setSelectedBookingId(activeLaundryBooking.id); navigate("booking-detail"); }}>
                   View details
                 </Button>
               </div>
@@ -1107,9 +1107,14 @@ export default function App() {
                   </div>
                 </div>
               )}
-              <Button className="full" onClick={() => { setSelectedBookingId(activeRideBooking.id); navigate("booking-detail"); }}>
-                Track ride
-              </Button>
+              <div className="booking-card-actions">
+                <Button className="secondary" onClick={() => openChatWithVendor(store.vendors.find((v) => v.id === activeRideBooking.vendorId) || store.vendors[1] || store.vendors[0], activeRideBooking)}>
+                  <Icon name="chat" size={14} /> Chat
+                </Button>
+                <Button onClick={() => { setSelectedBookingId(activeRideBooking.id); navigate("booking-detail"); }}>
+                  Track ride
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="booking-card">

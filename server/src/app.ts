@@ -17,6 +17,9 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, postman) or matching CORS_ORIGINS
       if (!origin) return callback(null, true);
       const allowed = env.CORS_ORIGINS.split(",").map((o) => o.trim());
+      if (process.env.APP_URL) {
+        allowed.push(process.env.APP_URL);
+      }
       if (allowed.includes(origin) || allowed.includes("*")) {
         return callback(null, true);
       }
@@ -38,12 +41,12 @@ app.get(["/api/v1/docs", "/api/docs"], (_req, res) => {
   res.sendFile(path.resolve(process.cwd(), "src/docs/openapi.json"));
 });
 
-// Health and Readiness Checks (Section 68)
-app.get("/health", (_req, res) => {
+// Health and Readiness Checks (Section 68) - supports both direct and /api prefixed routes
+app.get(["/health", "/api/health"], (_req, res) => {
   sendSuccess(res, { status: "UP", timestamp: new Date().toISOString() });
 });
 
-app.get("/ready", async (_req, res) => {
+app.get(["/ready", "/api/ready"], async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     sendSuccess(res, { status: "READY", database: "CONNECTED" });
@@ -61,3 +64,5 @@ app.use("/api", apiV1Router);
 
 // Global Error Handler
 app.use(errorHandler);
+
+export default app;

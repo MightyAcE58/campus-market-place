@@ -32,7 +32,7 @@ export class LocalStorageProvider implements IStorageProvider {
       mimeType: file.mimetype,
       sizeBytes: file.size,
       path: filePath,
-      url: `${env.APP_BASE_URL}/uploads/${storedName}`,
+      url: `${process.env.APP_URL || env.APP_BASE_URL}/uploads/${storedName}`,
       provider: "LOCAL",
     };
   }
@@ -44,6 +44,6 @@ export class LocalStorageProvider implements IStorageProvider {
   }
 
   getUrl(storedName: string): string {
-    return `${env.APP_BASE_URL}/uploads/${path.basename(storedName)}`;
+    return `${process.env.APP_URL || env.APP_BASE_URL}/uploads/${path.basename(storedName)}`;
   }
 }
