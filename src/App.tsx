@@ -165,14 +165,14 @@ function VendorCard({
         <div className="vendor-logo">{vendor.mark}</div>
         {vendor.offer && (
           <div className="offer-pill">
-            <Icon name="offer" size={13} /> {vendor.offer}
+            <Icon name="offer" size={12} /> {vendor.offer}
           </div>
         )}
         <div className="open-pill"><span /> {vendor.status}</div>
       </div>
       <div className="vendor-content">
         <div className="vendor-title-row">
-          <div>
+          <div className="vendor-title-info">
             <div className="vendor-name-row">
               <span className="vendor-name">{vendor.name}</span>
               {vendor.verified && <span className="verified-badge">✓ Verified</span>}
@@ -181,12 +181,12 @@ function VendorCard({
             <div className="vendor-type">{vendor.type}</div>
           </div>
           <button aria-label={`Open ${vendor.name}`} className="round-arrow" onClick={onDetails}>
-            <Icon name="arrow" size={18} />
+            <Icon name="arrow" size={16} />
           </button>
         </div>
         <div className="vendor-description">{vendor.description}</div>
         <div className="tag-row">
-          {vendor.tags.map((tag) => (
+          {vendor.tags.slice(0, 4).map((tag) => (
             <span key={tag} className={tag.includes("Negotiat") || tag.includes("Bargaining") ? "tag-negotiable" : ""}>
               {tag}
             </span>
@@ -196,13 +196,13 @@ function VendorCard({
           )}
         </div>
         <div className="vendor-meta">
-          <Icon name="location" size={15} /> {vendor.area}
+          <Icon name="location" size={13} /> {vendor.area}
         </div>
         <div className="vendor-footer">
-          <strong>{vendor.price}</strong>
+          <strong title={vendor.price}>{vendor.price}</strong>
           <div className="vendor-btn-pair">
             <button className="button tiny secondary" onClick={onChat} title="Chat & Bargain">
-              <Icon name="chat" size={14} /> Chat
+              <Icon name="chat" size={13} /> Chat
             </button>
             <Button className="tiny" onClick={onBook}>
               Book
@@ -245,6 +245,7 @@ export default function App() {
   const [adminTab, setAdminTab] = useState("dashboard");
   const [filterOpen, setFilterOpen] = useState(false);
   const [vegOnlyFilter, setVegOnlyFilter] = useState(false);
+  const [marketplaceTab, setMarketplaceTab] = useState<"All" | "Bike Ride" | "Laundry" | "Food">("All");
 
   // Bike flow state
   const [pickup, setPickup] = useState("Main Gate");
@@ -903,9 +904,15 @@ export default function App() {
         v.tags.some((t) => t.toLowerCase().includes(search.toLowerCase())) ||
         v.area.toLowerCase().includes(search.toLowerCase());
       const matchesDietary = !vegOnlyFilter || v.dietaryClassification === "VEG_ONLY" || v.category !== "food";
-      return matchesSearch && matchesDietary;
+      // Tab filter in marketplace view
+      const matchesTab =
+        marketplaceTab === "All" ||
+        (marketplaceTab === "Bike Ride" && v.category === "ride") ||
+        (marketplaceTab === "Laundry" && v.category === "laundry") ||
+        (marketplaceTab === "Food" && v.category === "food");
+      return matchesSearch && matchesDietary && matchesTab;
     });
-  }, [store.vendors, search, vegOnlyFilter]);
+  }, [store.vendors, search, vegOnlyFilter, marketplaceTab]);
 
   // Render Screens
   const renderHome = () => (
@@ -1177,16 +1184,13 @@ export default function App() {
       </div>
 
       <div className="tabs">
-        {["All", "Bike Ride", "Laundry", "Food"].map((tab) => (
+        {(["All", "Bike Ride", "Laundry", "Food"] as const).map((tab) => (
           <button
-            className={(tab === "All" && !category) || (tab === "Bike Ride" && category === "ride") || (tab.toLowerCase() === category) ? "active" : ""}
+            className={marketplaceTab === tab ? "active" : ""}
             key={tab}
             onClick={() => {
-              if (tab === "All") {
-                setSearch("");
-              } else {
-                openCategory(tab === "Bike Ride" ? "ride" : (tab.toLowerCase() as CategoryId));
-              }
+              setMarketplaceTab(tab);
+              setSearch("");
             }}
           >
             {tab}

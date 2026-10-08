@@ -420,9 +420,9 @@ button:disabled { cursor: not-allowed; opacity: .48; transform: none !important;
   .desktop-nav { display: none; }
   .topbar { justify-content: space-between; }
   .brand, .header-actions { min-width: 0; }
-  .page-grid { grid-template-columns: minmax(0, 1fr) 290px; gap: 20px; }
+  .page-grid { grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; padding: 24px 18px 0; }
   .category-grid { grid-template-columns: 1fr; }
-  .vendor-grid { grid-template-columns: repeat(2, 1fr); }
+  .vendor-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .category-card { min-height: 92px; }
 }
 @media (max-width: 760px) {
@@ -449,8 +449,8 @@ button:disabled { cursor: not-allowed; opacity: .48; transform: none !important;
   .category-card { flex: 0 0 245px; scroll-snap-align: start; }
   .vendors-section { margin-top: 27px !important; }
   .vendor-grid, .vendor-list, .offer-grid, .category-admin-grid { grid-template-columns: 1fr; }
-  .side-column { margin-top: 28px; }
-  .page { padding: 25px 16px 84px; }
+  .side-column { margin-top: 0; }
+  .page { padding: 20px 14px 80px; }
   .page-head { align-items: flex-start; }
   .page-head > .button { padding: 10px; }
   .market-toolbar, .admin-toolbar { align-items: stretch; flex-direction: column; }
