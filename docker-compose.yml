@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: campus_commerce_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: vinay
+      POSTGRES_PASSWORD: campuspassword
+      POSTGRES_DB: campus_commerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vinay -d campus_commerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: campus_commerce_backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://vinay:campuspassword@postgres:5432/campus_commerce?schema=public
+      JWT_SECRET: super-secret-jwt-key-campus-commerce-mvp-2025-token-change-in-prod
+      JWT_REFRESH_SECRET: super-secret-refresh-key-campus-commerce-mvp-2025-session-token
+      OTP_SECRET: campus-commerce-otp-hmac-salt-secret-key-2025
+      OTP_EXPIRY_SECONDS: 300
+      WHATSAPP_PROVIDER: MOCK
+      STORAGE_PROVIDER: LOCAL
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+
+volumes:
+  postgres_data:
+  uploads_data:

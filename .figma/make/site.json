@@ -1,0 +1,10 @@
+{
+  "description": "Streamline campus services with an interactive marketplace for students to book rides, laundry, and food, enhancing convenience and accessibility.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

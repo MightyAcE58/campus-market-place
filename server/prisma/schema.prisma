@@ -1,0 +1,415 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  VENDOR_OWNER
+  ADMIN
+}
+
+enum VendorType {
+  BIKE_RIDE
+  LAUNDRY
+  FOOD
+}
+
+enum MarketplaceStatus {
+  OPEN
+  CLOSED
+  PAUSED
+}
+
+enum AccessStatus {
+  INVITED
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  EXPIRED
+  REMOVED
+}
+
+enum AccessPlan {
+  PAID
+  FREE
+  TRIAL
+}
+
+enum BookingStatus {
+  REQUESTED
+  ASSIGNED
+  ACCEPTED
+  RECEIVED
+  PREPARING
+  PROCESSING
+  READY
+  COMPLETED
+  CANCELLED
+  ON_THE_WAY
+}
+
+enum NotificationChannel {
+  IN_APP
+  WHATSAPP
+}
+
+enum DietaryClassification {
+  VEG_ONLY
+  VEG_AND_NON_VEG
+}
+
+model User {
+  id                      String            @id @default(cuid())
+  name                    String
+  phone                   String            @unique
+  hostel                  String?
+  roomNumber              String?
+  profilePhoto            String?
+  role                    Role              @default(CUSTOMER)
+  notificationPreferences Json?             @default("{\"serviceUpdatesWhatsApp\": true, \"serviceUpdatesInApp\": true, \"promoWhatsApp\": false, \"promoInApp\": true}")
+  passwordHash            String?
+  activationToken         String?
+  activationTokenExpiresAt DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  ownedVendors            Vendor[]          @relation("VendorOwner")
+  bookings                Booking[]
+  notifications           Notification[]
+  refreshSessions         RefreshSession[]
+  auditLogs               AuditLog[]
+
+  @@index([phone])
+  @@index([role])
+}
+
+model Vendor {
+  id                    String                @id @default(cuid())
+  businessName          String
+  ownerName             String
+  email                 String?
+  phone                 String
+  whatsappNumber        String
+  logo                  String?
+  description           String?
+  vendorType            VendorType
+  tags                  Json                  @default("[]")
+  marketplaceStatus     MarketplaceStatus     @default(OPEN)
+  accessStatus          AccessStatus          @default(ACTIVE)
+  accessStart           DateTime              @default(now())
+  accessEnd             DateTime
+  plan                  AccessPlan            @default(PAID)
+  monthlyPrice          Float                 @default(0)
+  color                 String?
+  mark                  String?
+  operatingHours        String?
+  serviceArea           String?
+  dietaryClassification DietaryClassification?
+  minimumOrder          Float?
+
+  ownerId               String?
+  owner                 User?                 @relation("VendorOwner", fields: [ownerId], references: [id])
+
+  services              VendorService[]
+  riders                Rider[]
+  offers                Offer[]
+  bookings              Booking[]
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@index([accessStatus])
+  @@index([vendorType])
+  @@index([marketplaceStatus])
+  @@index([ownerId])
+}
+
+model Category {
+  id          String   @id // "ride", "laundry", "food"
+  name        String
+  description String
+  detail      String
+  icon        String
+  className   String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VendorService {
+  id                  String                @id @default(cuid())
+  vendorId            String
+  vendor              Vendor                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  serviceType         VendorType
+  name                String
+  description         String?
+  active              Boolean               @default(true)
+
+  configuration       ServiceConfiguration?
+  fareRules           RideFareRule[]
+  clothingTypes       LaundryClothingType[]
+  laundryServiceTypes LaundryServiceType[]
+  menuItems           FoodMenuItem[]
+  locations           Location[]
+  bookings            Booking[]
+
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([vendorId])
+  @@index([serviceType])
+  @@index([active])
+}
+
+model ServiceConfiguration {
+  id          String        @id @default(cuid())
+  serviceId   String        @unique
+  service     VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  configData  Json
+  version     Int           @default(1)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Location {
+  id          String         @id @default(cuid())
+  serviceId   String?
+  service     VendorService? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name        String
+  code        String?
+  description String?
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([serviceId])
+}
+
+model RideFareRule {
+  id               String        @id @default(cuid())
+  serviceId        String
+  service          VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  pickupLocation   String
+  dropoffLocation  String
+  passengerCount   Int
+  fare             Float
+  currency         String        @default("INR")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([serviceId])
+  @@index([pickupLocation, dropoffLocation, passengerCount])
+}
+
+model Rider {
+  id                String    @id @default(cuid())
+  vendorId          String
+  vendor            Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name              String
+  phone             String
+  vehicleIdentifier String
+  active            Boolean   @default(true)
+  bookings          Booking[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([active])
+}
+
+model LaundryClothingType {
+  id               String        @id @default(cuid())
+  serviceId        String
+  service          VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name             String
+  allowed          Boolean       @default(true)
+  restrictedReason String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([serviceId])
+  @@index([allowed])
+}
+
+model LaundryServiceType {
+  id         String        @id @default(cuid())
+  serviceId  String
+  service    VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  type       String        // WASH_ONLY, WASH_AND_IRON, IRON_ONLY
+  name       String
+  pricePerKg Float
+  serviceFee Float         @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([serviceId])
+}
+
+model FoodMenuItem {
+  id                    String        @id @default(cuid())
+  serviceId             String
+  service               VendorService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  name                  String
+  description           String?
+  price                 Float
+  available             Boolean       @default(true)
+  category              String?
+  dietaryClassification String        @default("VEG") // VEG, NON_VEG
+  image                 String?
+  color                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([serviceId])
+  @@index([available])
+  @@index([dietaryClassification])
+}
+
+model Booking {
+  id             String                 @id // E.g. "CCM-R-1042", "CCM-L-1042", "CCM-F-1042"
+  customerId     String
+  customer       User                   @relation(fields: [customerId], references: [id])
+  vendorId       String
+  vendor         Vendor                 @relation(fields: [vendorId], references: [id])
+  serviceId      String
+  service        VendorService          @relation(fields: [serviceId], references: [id])
+  serviceType    VendorType
+  status         BookingStatus          @default(REQUESTED)
+  quotedPrice    Float
+  currency       String                 @default("INR")
+  summary        String?
+  bookingData    Json                   // Structured service-specific booking fields
+  idempotencyKey String?                @unique
+  riderId        String?
+  rider          Rider?                 @relation(fields: [riderId], references: [id])
+
+  history        BookingStatusHistory[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([customerId])
+  @@index([vendorId])
+  @@index([serviceId])
+  @@index([serviceType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model BookingStatusHistory {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  oldStatus String?
+  newStatus String
+  changedBy String   // userId or "SYSTEM"
+  changedAt DateTime @default(now())
+  metadata  Json?
+
+  @@index([bookingId])
+  @@index([changedAt])
+}
+
+model Offer {
+  id             String         @id @default(cuid())
+  vendorId       String
+  vendor         Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  serviceId      String?
+  title          String
+  description    String?
+  applicableItem String?
+  originalPrice  Float?
+  offerPrice     Float
+  startAt        DateTime
+  endAt          DateTime
+  eligibility    String?
+  location       String?
+  published      Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([vendorId])
+  @@index([published])
+  @@index([startAt, endAt])
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  message   String
+  channel   NotificationChannel @default(IN_APP)
+  readAt    DateTime?
+  metadata  Json?
+  createdAt DateTime            @default(now())
+
+  @@index([userId])
+  @@index([readAt])
+  @@index([createdAt])
+}
+
+model OtpRequest {
+  id              String    @id @default(cuid())
+  phone           String
+  hashedOtp       String
+  attemptCount    Int       @default(0)
+  requestCount    Int       @default(1)
+  lastRequestedAt DateTime  @default(now())
+  cooldownUntil   DateTime?
+  expiresAt       DateTime
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([phone])
+  @@index([createdAt])
+}
+
+model RefreshSession {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model FileAsset {
+  id           String   @id @default(cuid())
+  originalName String
+  storedName   String
+  mimeType     String
+  sizeBytes    Int
+  path         String
+  url          String
+  provider     String   @default("local")
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+}
